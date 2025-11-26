@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String?   // Nullable for invited users who haven't set password yet
+  name        String
+  role        Role      @default(SUB)
+  isInvited   Boolean   @default(false)
+  inviteToken String?   @unique
+  lastLogin   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  profile      UserProfile?
+  inviteTokens InviteToken[]
+
+  @@index([email])
+}
+
+model UserProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Personal Information
+  firstName   String?
+  lastName    String?
+  dateOfBirth DateTime?
+  bio         String?   @db.Text
+
+  // Contact Information
+  phone      String?
+  address    String?
+  city       String?
+  postalCode String?
+  country    String?
+
+  // Contact Persons (stored as JSON)
+  emergencyContacts Json? // [{name, relation, phone, email}]
+
+  // Social Media (stored as JSON)
+  socialMedia Json? // {instagram, linkedin, twitter, facebook, youtube, tiktok}
+
+  // Media URLs
+  profileImage  String?
+  coverImage    String?
+  galleryImages String[] // Array of URLs
+  videos        String[] // Array of URLs
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model InviteToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+enum Role {
+  ADMIN
+  SUB
+}
