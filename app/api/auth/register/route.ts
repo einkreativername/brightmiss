@@ -67,11 +67,19 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error) {
-    console.error("Registration error:", error)
+  } catch (error: any) {
+    console.error("Registration error:", error);
+    let errorMessage = "Internal server error";
+    if (error.code === 'P2002') { // Unique constraint violation
+      errorMessage = "User with this email already exists.";
+      return NextResponse.json({ error: errorMessage }, { status: 409 }); // Conflict
+    } else if (error.name === 'PrismaClientInitializationError') {
+      errorMessage = "Database connection error. Please try again later.";
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: errorMessage },
       { status: 500 }
-    )
+    );
   }
 }
