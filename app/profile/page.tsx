@@ -15,6 +15,7 @@ export default async function ProfilePage() {
     include: { profile: true },
   })
 
+  // If user is not found in DB, redirect to login (e.g., deleted account)
   if (!user) {
     redirect("/login")
   }

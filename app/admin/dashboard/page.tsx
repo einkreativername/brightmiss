@@ -10,6 +10,7 @@ export default async function AdminDashboard() {
     redirect("/login")
   }
 
+  // If user is not an ADMIN, redirect to profile
   if (session.user.role !== "ADMIN") {
     redirect("/profile")
   }
