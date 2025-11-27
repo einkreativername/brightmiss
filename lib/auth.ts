@@ -11,6 +11,7 @@ const loginSchema = z.object({
 })
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // @ts-ignore - Type conflict between @auth/core versions (direct vs nested from next-auth)
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
@@ -67,8 +68,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.role = user.role
+        token.id = user.id as string
+        token.role = user.role as "ADMIN" | "SUB"
       }
       return token
     },
