@@ -2,6 +2,19 @@ import { auth, signOut } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
+
+// Define types locally
+interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+}
+
+interface SocialMedia {
+  platform: string;
+  link: string;
+}
 
 export default async function UserDetailPage({
   params,
@@ -34,12 +47,12 @@ export default async function UserDetailPage({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">User not found</h2>
+          <h2 className="text-2xl font-bold text-primary">User not found</h2>
           <Link
             href="/admin/dashboard"
-            className="mt-4 inline-block text-blue-600 hover:text-blue-500"
+            className="mt-4 inline-block text-foreground hover:text-primary transition-colors"
           >
             Back to Dashboard
           </Link>
@@ -48,19 +61,23 @@ export default async function UserDetailPage({
     )
   }
 
+  const profile = user.profile
+  const emergencyContacts = (profile?.emergencyContacts as unknown as EmergencyContact[]) || []
+  const socialMedia = (profile?.socialMedia as unknown as SocialMedia[]) || []
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background pb-12 text-foreground">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm">
+      <nav className="bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold">BrightMiss Admin</h1>
+              <h1 className="text-xl font-bold text-primary">BrightMiss Admin</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Link
                 href="/admin/dashboard"
-                className="text-gray-700 hover:text-gray-900"
+                className="text-foreground hover:text-primary transition-colors font-medium"
               >
                 Dashboard
               </Link>
@@ -72,7 +89,7 @@ export default async function UserDetailPage({
               >
                 <button
                   type="submit"
-                  className="text-gray-700 hover:text-gray-900"
+                  className="text-foreground hover:text-primary transition-colors font-medium"
                 >
                   Sign out
                 </button>
@@ -86,189 +103,242 @@ export default async function UserDetailPage({
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">User Details</h2>
+            <h2 className="text-2xl font-bold text-primary">User Details: {user.name}</h2>
             <Link
               href="/admin/dashboard"
-              className="text-blue-600 hover:text-blue-500"
+              className="text-muted-foreground hover:text-primary transition-colors"
             >
               Back to Dashboard
             </Link>
           </div>
 
-          {/* User Info */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Account Information
-              </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column: Account & Basic Info */}
+            <div className="lg:col-span-1 space-y-6">
+               {/* Account Info */}
+               <div className="bg-card border border-border shadow-lg rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-primary mb-4 border-b border-border pb-2">Account</h3>
+                  <div className="space-y-4">
+                    <div>
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Email</span>
+                        <span className="text-foreground font-medium">{user.email}</span>
+                    </div>
+                    <div>
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Role</span>
+                        <span
+                        className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            user.role === "ADMIN"
+                            ? "bg-primary/20 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                        >
+                        {user.role}
+                        </span>
+                    </div>
+                    <div>
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Status</span>
+                         {user.isInvited ? (
+                            <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-500/20 text-yellow-500">
+                                Invited
+                            </span>
+                            ) : (
+                            <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-500/20 text-green-500">
+                                Active
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Joined</span>
+                        <span className="text-foreground text-sm">{new Date(user.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+               </div>
+
+                {/* Profile Images */}
+                <div className="bg-card border border-border shadow-lg rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-primary mb-4 border-b border-border pb-2">Images</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-2">Profile</span>
+                            {profile?.profileImage ? (
+                                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-primary/20">
+                                    <Image src={profile.profileImage} alt="Profile" fill className="object-cover" />
+                                </div>
+                            ) : (
+                                <span className="text-muted-foreground text-sm italic">None</span>
+                            )}
+                        </div>
+                        <div>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-2">Cover</span>
+                             {profile?.coverImage ? (
+                                <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border">
+                                    <Image src={profile.coverImage} alt="Cover" fill className="object-cover" />
+                                </div>
+                            ) : (
+                                <span className="text-muted-foreground text-sm italic">None</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div className="border-t border-gray-200">
-              <dl>
-                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">User ID</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user.id}
-                  </dd>
+
+            {/* Right Column: Detailed Profile */}
+            <div className="lg:col-span-2 space-y-6">
+                {/* Personal & Contact */}
+                <div className="bg-card border border-border shadow-lg rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-primary mb-4 border-b border-border pb-2">Profile Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Full Name</span>
+                            <span className="text-foreground font-medium">
+                                {profile?.firstName || profile?.lastName
+                                ? `${profile.firstName || ""} ${profile.lastName || ""}`
+                                : "N/A"}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Date of Birth</span>
+                            <span className="text-foreground">
+                                {profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : "N/A"}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Phone</span>
+                            <span className="text-foreground">{profile?.phone || "N/A"}</span>
+                        </div>
+                        <div>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Work Place</span>
+                            <span className="text-foreground">{profile?.workPlace || "N/A"}</span>
+                        </div>
+                        <div className="md:col-span-2">
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Address</span>
+                            <p className="text-foreground">
+                                {profile?.address && <span className="block">{profile.address}</span>}
+                                {profile?.city && <span>{profile.city}</span>}
+                                {profile?.postalCode && <span>, {profile.postalCode}</span>}
+                                {profile?.country && <span className="block">{profile.country}</span>}
+                                {!profile?.address && !profile?.city && "N/A"}
+                            </p>
+                        </div>
+                        <div className="md:col-span-2">
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">Bio</span>
+                            <p className="text-foreground whitespace-pre-wrap">{profile?.bio || "N/A"}</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Name</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user.name}
-                  </dd>
+
+                {/* Additional Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Emergency Contacts */}
+                    <div className="bg-card border border-border shadow-lg rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-primary mb-4 border-b border-border pb-2">Emergency Contacts</h3>
+                        {emergencyContacts.length > 0 ? (
+                            <div className="space-y-4">
+                                {emergencyContacts.map((contact, idx) => (
+                                    <div key={idx} className="border-b border-border last:border-0 pb-2 last:pb-0">
+                                        <p className="font-medium text-foreground">{contact.name}</p>
+                                        <p className="text-xs text-muted-foreground">{contact.relationship} • {contact.phone}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-muted-foreground italic text-sm">None</p>
+                        )}
+                    </div>
+
+                    {/* Social Media */}
+                    <div className="bg-card border border-border shadow-lg rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-primary mb-4 border-b border-border pb-2">Social Media</h3>
+                        {socialMedia.length > 0 ? (
+                            <div className="space-y-2">
+                                {socialMedia.map((social, idx) => (
+                                    <div key={idx} className="text-sm">
+                                        <span className="font-medium text-foreground mr-2">{social.platform}:</span>
+                                        <a href={social.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate inline-block max-w-[200px] align-bottom">
+                                            {social.link}
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-muted-foreground italic text-sm">None</p>
+                        )}
+                    </div>
                 </div>
-                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Email</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user.email}
-                  </dd>
+
+                {/* Media */}
+                <div className="bg-card border border-border shadow-lg rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-primary mb-4 border-b border-border pb-2">Media Gallery</h3>
+                    
+                    <div className="space-y-6">
+                        <div>
+                            <h4 className="text-sm font-medium text-foreground mb-3">Photos</h4>
+                            {profile?.galleryImages && profile.galleryImages.length > 0 ? (
+                                <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                                    {profile.galleryImages.map((img, idx) => (
+                                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                                            <Image src={img} alt={`Gallery ${idx}`} fill className="object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground italic text-sm">No photos</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-medium text-foreground mb-3">Videos</h4>
+                            {profile?.videos && profile.videos.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {profile.videos.map((vid, idx) => (
+                                        <div key={idx} className="relative aspect-video rounded-lg overflow-hidden bg-black border border-border">
+                                            <video src={vid} controls className="w-full h-full" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground italic text-sm">No videos</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
-                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Role</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.role === "ADMIN"
-                          ? "bg-purple-100 text-purple-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {user.role}
-                    </span>
-                  </dd>
-                </div>
-                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Status</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user.isInvited ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                        Invited (Pending Password)
-                      </span>
-                    ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Active
-                      </span>
-                    )}
-                  </dd>
-                </div>
-                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Created At</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {new Date(user.createdAt).toLocaleString()}
-                  </dd>
-                </div>
-                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Last Login</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user.lastLogin
-                      ? new Date(user.lastLogin).toLocaleString()
-                      : "Never"}
-                  </dd>
-                </div>
-              </dl>
+
+                {/* Invite History (Existing) */}
+                {user.inviteTokens.length > 0 && (
+                    <div className="bg-card border border-border shadow-lg rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-primary mb-4 border-b border-border pb-2">Invite History</h3>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead>
+                                    <tr>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Created</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Expires</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {user.inviteTokens.map((token) => (
+                                    <tr key={token.id}>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-foreground">{new Date(token.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-foreground">{new Date(token.expiresAt).toLocaleDateString()}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                        {token.used ? (
+                                            <span className="text-green-500">Used</span>
+                                        ) : new Date() > token.expiresAt ? (
+                                            <span className="text-destructive">Expired</span>
+                                        ) : (
+                                            <span className="text-yellow-500">Pending</span>
+                                        )}
+                                        </td>
+                                    </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
           </div>
-
-          {/* Profile Info */}
-          {user.profile && (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
-              <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Profile Information
-                </h3>
-              </div>
-              <div className="border-t border-gray-200">
-                <dl>
-                  {user.profile.firstName && (
-                    <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                      <dt className="text-sm font-medium text-gray-500">First Name</dt>
-                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {user.profile.firstName}
-                      </dd>
-                    </div>
-                  )}
-                  {user.profile.lastName && (
-                    <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                      <dt className="text-sm font-medium text-gray-500">Last Name</dt>
-                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {user.profile.lastName}
-                      </dd>
-                    </div>
-                  )}
-                  {user.profile.phone && (
-                    <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                      <dt className="text-sm font-medium text-gray-500">Phone</dt>
-                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {user.profile.phone}
-                      </dd>
-                    </div>
-                  )}
-                  {user.profile.bio && (
-                    <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                      <dt className="text-sm font-medium text-gray-500">Bio</dt>
-                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {user.profile.bio}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </div>
-            </div>
-          )}
-
-          {/* Invite Tokens */}
-          {user.inviteTokens.length > 0 && (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Invite History
-                </h3>
-              </div>
-              <div className="border-t border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Expires
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {user.inviteTokens.map((token) => (
-                      <tr key={token.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(token.createdAt).toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(token.expiresAt).toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {token.used ? (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              Used
-                            </span>
-                          ) : new Date() > token.expiresAt ? (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                              Expired
-                            </span>
-                          ) : (
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                              Pending
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

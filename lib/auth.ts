@@ -1,84 +1,67 @@
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
-import { z } from "zod"
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-})
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // @ts-ignore - Type conflict between @auth/core versions (direct vs nested from next-auth)
-  adapter: PrismaAdapter(prisma),
-  session: {
-    strategy: "jwt",
-  },
+  adapter: PrismaAdapter(prisma) as any,
+  session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
-  trustHost: true,
   providers: [
     Credentials({
+      name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const validated = loginSchema.safeParse(credentials)
-
-        if (!validated.success) {
-          return null
+        if (!credentials?.email || !credentials?.password) {
+          return null;
         }
-
-        const { email, password } = validated.data
 
         const user = await prisma.user.findUnique({
-          where: { email },
-          include: { profile: true },
-        })
+          where: { email: credentials.email as string },
+        });
 
         if (!user || !user.password) {
-          return null
+          return null;
         }
 
-        const isValidPassword = await bcrypt.compare(password, user.password)
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password as string,
+          user.password
+        );
 
-        if (!isValidPassword) {
-          return null
+        if (!isPasswordValid) {
+          return null;
         }
-
-        // Update last login
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLogin: new Date() },
-        })
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-        }
+        };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id as string
-        token.role = user.role as "ADMIN" | "SUB"
+        token.id = user.id;
+        token.role = user.role;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as "ADMIN" | "SUB"
+        session.user.id = token.id as string;
+        session.user.role = (token.role as string) || "SUB";
       }
-      return session
+      return session;
     },
   },
-})
+});

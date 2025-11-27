@@ -1,0 +1,17 @@
+-- AlterTable
+ALTER TABLE "UserProfile" ADD COLUMN     "amazonWishlist" TEXT,
+ADD COLUMN     "cloudEmail" TEXT,
+ADD COLUMN     "declarationFaceImage" TEXT,
+ADD COLUMN     "declarationImage" TEXT,
+ADD COLUMN     "fullLegalName" TEXT,
+ADD COLUMN     "idCardImages" TEXT[],
+ADD COLUMN     "idNumber" TEXT,
+ADD COLUMN     "licensePlate" TEXT,
+ADD COLUMN     "mobileDevice" TEXT,
+ADD COLUMN     "paymentDetails" TEXT,
+ADD COLUMN     "privateEmail" TEXT,
+ADD COLUMN     "remoteControlId" TEXT,
+ADD COLUMN     "secondaryPhone" TEXT,
+ADD COLUMN     "streamingAccounts" JSONB,
+ADD COLUMN     "vaultImages" TEXT[],
+ADD COLUMN     "vaultVideos" TEXT[];

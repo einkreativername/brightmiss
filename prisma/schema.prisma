@@ -10,10 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  SUB
+}
+
 model User {
   id          String    @id @default(uuid())
   email       String    @unique
-  password    String?   // Nullable for invited users who haven't set password yet
+  password    String?   // Nullable for invited users
   name        String
   role        Role      @default(SUB)
   isInvited   Boolean   @default(false)
@@ -29,15 +34,15 @@ model User {
 }
 
 model UserProfile {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Personal Information
-  firstName   String?
-  lastName    String?
+  firstName   String?  @db.VarChar(100)
+  lastName    String?  @db.VarChar(100)
   dateOfBirth DateTime?
-  bio         String?   @db.Text
+  bio         String?  @db.Text
 
   // Contact Information
   phone      String?
@@ -45,18 +50,67 @@ model UserProfile {
   city       String?
   postalCode String?
   country    String?
+  workPlace  String?
 
-  // Contact Persons (stored as JSON)
-  emergencyContacts Json? // [{name, relation, phone, email}]
+  // JSON Fields
+  emergencyContacts Json?
+  socialMedia       Json?
 
-  // Social Media (stored as JSON)
-  socialMedia Json? // {instagram, linkedin, twitter, facebook, youtube, tiktok}
-
-  // Media URLs
+  // Media
   profileImage  String?
   coverImage    String?
-  galleryImages String[] // Array of URLs
-  videos        String[] // Array of URLs
+  galleryImages String[]
+  videos        String[]
+
+  // Phase 1 - Identity
+  fullLegalName  String?
+  secondaryPhone String?
+  privateEmail   String?
+  cloudEmail     String?
+  idNumber       String?
+  licensePlate   String?
+
+  // Phase 2 - Digital & Financial
+  paymentDetails    String?
+  amazonWishlist    String?
+  remoteControlId   String?
+  streamingAccounts Json?
+  mobileDevice      String?
+
+  // Phase 3 - Vault
+  vaultImages          String[]
+  vaultVideos          String[]
+  idCardImages         String[]
+  declarationImage     String?
+  declarationFaceImage String?
+
+  // Profile Locking System
+  changeRequested Boolean @default(false)
+
+  // First Name Locking
+  firstNameApproved Boolean  @default(false)
+  firstNameLocked   Boolean  @default(false)
+  firstNamePending  String?  @db.VarChar(100)
+
+  // Last Name Locking
+  lastNameApproved Boolean  @default(false)
+  lastNameLocked   Boolean  @default(false)
+  lastNamePending  String?  @db.VarChar(100)
+
+  // Phone Locking
+  phoneApproved Boolean @default(false)
+  phoneLocked   Boolean @default(false)
+  phonePending  String?
+
+  // Address Locking
+  addressApproved Boolean @default(false)
+  addressLocked   Boolean @default(false)
+  addressPending  String?
+
+  // Work Place Locking
+  workPlaceApproved Boolean @default(false)
+  workPlaceLocked   Boolean @default(false)
+  workPlacePending  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -75,9 +129,4 @@ model InviteToken {
 
   @@index([token])
   @@index([userId])
-}
-
-enum Role {
-  ADMIN
-  SUB
 }
