@@ -12,6 +12,10 @@ declare module "next-auth" {
   interface User {
     role: "ADMIN" | "SUB"
   }
+
+  interface AdapterUser {
+    role: "ADMIN" | "SUB"
+  }
 }
 
 declare module "next-auth/jwt" {
